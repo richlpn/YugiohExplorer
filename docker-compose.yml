@@ -1,0 +1,24 @@
+services:
+  nicegui:
+    image: zauberzeug/nicegui:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - ./:/app # mounting local app directory
+    environment:
+      - PUID=1000 # change this to your user id
+      - PGID=1000 # change this to your group id
+      - postgres
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nicegui_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+volumes:
+  pgdata:
+    driver: local
