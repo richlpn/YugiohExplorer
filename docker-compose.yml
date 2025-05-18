@@ -4,21 +4,50 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./:/app # mounting local app directory
-    environment:
-      - PUID=1000 # change this to your user id
-      - PGID=1000 # change this to your group id
-      - postgres
-  postgres:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: nicegui_db
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./frontend:/app # mounting local app directory
+    depends_on:
+      - search_embeddings
+  jupyter:
+    image: tensorflow/tensorflow:latest-gpu-jupyter
+    container_name: jupyter-gpu
     ports:
-      - 5432:5432
-volumes:
-  pgdata:
-    driver: local
+      - "8888:8888"
+    volumes:
+      - ./data/:/opt/data/
+      - ./models/:/opt/models/
+    environment:
+      - DATA_DIR=/opt/data
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=opt/models/huggingface/
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+  # Create another service for Search Embeddings API
+  search_embeddings:
+    image: search_embeddings:latest
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    container_name: search_embeddings
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/:/opt/data/
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    environment:
+      - DATA_DIR=/opt/data
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
